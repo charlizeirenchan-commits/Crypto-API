@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crypto News Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2; }
+        input, button { padding: 0.5; font-size: 2; }
+        .result { margin-top: 2; }
+        .coin { font-weight: bold; font-size: 1.2; }
+        .headline { margin-bottom: 1; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Search Cryptocurrency News</h1>
+    <input type="text" id="search" placeholder="Enter coin name (e.g., Bitcoin)">
+    <button onclick="searchCoin()">Search</button>
+    <div id="output" class="result"></div>
+
+    <script>
+        async function searchCoin() {
+            const coinName = document.getElementById('search').value.trim();
+            const output = document.getElementById('output');
+            output.innerHTML = 'Loading...';
+
+            // CoinMarketCap API
+            const cmcKey = 'da342396-84fe-4ea1-80e5-b8f25452f85b';
+            const cmcUrl = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?start=1&limit=100&convert=USD`;
+            try {
+                const cmcResp = await fetch(cmcUrl, {
+                    headers: { 'X-CMC_PRO_API_KEY': cmcKey, 'Accepts': 'application/json' }
+                });
+                const cmcData = await cmcResp.json();
+                const coin = cmcData.data.find(c => c.name.toLowerCase() === coinName.toLowerCase());
+                if (!coin) {
+                    output.innerHTML = `<div class="error">Coin not found.</div>`;
+                    return;
+                }
+
+                // NewsAPI
+                const newsKey = '0aaf2be9e81442e8a49f41dfc2b271fc';
+                const newsUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(coinName)}&apiKey=${newsKey}&pageSize=3&sortBy=publishedAt&language=en`;
+                const newsResp = await fetch(newsUrl);
+                const newsData = await newsResp.json();
+
+                let html = `<div class="coin">${coin.name} (${coin.symbol})</div>`;
+                html += `<div>Price: $${coin.quote.USD.price.toFixed(2)}</div>`;
+                html += `<div>Latest News:</div><ul>`;
+                if (newsData.articles && newsData.articles.length > 0) {
+                    newsData.articles.forEach(a => {
+                        html += `<li class="headline"><a href="${a.url}" target="_blank">${a.title}</a> <em>(${a.source.name})</em></li>`;
+                    });
+                } else {
+                    html += `<li>No news articles found.</li>`;
+                }
+                html += `</ul>`;
+                output.innerHTML = html;
+            } catch (err) {
+                output.innerHTML = `<div class="error">Error fetching data. Please try again.</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
